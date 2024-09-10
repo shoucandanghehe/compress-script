@@ -132,7 +132,7 @@ async def read_file(file: AsyncBufferedReader, size: int) -> AsyncGenerator[byte
 async def calculate_hash(file_list: list[Path]) -> list[Path]:
     logger.info('开始计算Hash')
     lock = ALock()
-    with Live(Group(progress := get_progress(), total := get_total()), console=console):
+    with Live(Group(progress := get_progress(), total := get_total()), console=console, refresh_per_second=10):
 
         async def worker(file: Path, task_id: TaskID) -> Path:
             progress.start_task(task_id)
@@ -199,7 +199,7 @@ async def _main(source_path: Path) -> None:
 
     # 开始压缩
     process = await call_compression(source_path, file_name)
-    with Live(progress := get_progress(), console=console):
+    with Live(progress := get_progress(), console=console, refresh_per_second=10):
         task_id = progress.add_task(
             'compress',
             status='Compressing...',
@@ -215,7 +215,7 @@ async def _main(source_path: Path) -> None:
 
     # 开始测试
     process = await call_test(next((i for i in product_list if i.suffix == '.001'), product_list[0]))
-    with Live(progress := get_progress(), console=console):
+    with Live(progress := get_progress(), console=console, refresh_per_second=10):
         task_id = progress.add_task(
             'compress',
             status='Testing...',
