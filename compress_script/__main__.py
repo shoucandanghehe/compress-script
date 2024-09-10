@@ -22,8 +22,8 @@ from rich.progress import TaskID
 from compress_script.config import Config
 from compress_script.exception import CanNotFindProductsError, ProgressParsingError
 from compress_script.lock import Lock
-from compress_script.logger import logger
-from compress_script.progress import progress, total
+from compress_script.logger import console, logger
+from compress_script.progress import get_progress, get_total
 
 CONFIG = Config()
 
@@ -132,7 +132,7 @@ async def read_file(file: AsyncBufferedReader, size: int) -> AsyncGenerator[byte
 async def calculate_hash(file_list: list[Path]) -> list[Path]:
     logger.info('开始计算Hash')
     lock = ALock()
-    with Live(Group(progress, total)):
+    with Live(Group(progress := get_progress(), total := get_total()), console=console):
 
         async def worker(file: Path, task_id: TaskID) -> Path:
             progress.start_task(task_id)
@@ -199,7 +199,7 @@ async def _main(source_path: Path) -> None:
 
     # 开始压缩
     process = await call_compression(source_path, file_name)
-    with progress as p:
+    with Live(progress := get_progress(), console=console):
         task_id = progress.add_task(
             'compress',
             status='Compressing...',
@@ -207,15 +207,15 @@ async def _main(source_path: Path) -> None:
             total=(total := get_total_size(source_path)),
         )
         async for i in parsing_compress(process):
-            p.update(task_id, completed=total * (i.rate / 100), status=f'Compressing {i.file}')
-        p.update(task_id, completed=total, status='Completed', refresh=True)
+            progress.update(task_id, completed=total * (i.rate / 100), status=f'Compressing {i.file}')
+        progress.update(task_id, completed=total, status='Completed', refresh=True)
 
     # 处理产物
     product_list = handle_products(source_path, file_name)
 
     # 开始测试
     process = await call_test(next((i for i in product_list if i.suffix == '.001'), product_list[0]))
-    with progress as p:
+    with Live(progress := get_progress(), console=console):
         task_id = progress.add_task(
             'compress',
             status='Testing...',
@@ -225,26 +225,26 @@ async def _main(source_path: Path) -> None:
         async for i in parsing_test(process):
             match i.status:
                 case 'Test':
-                    p.update(
+                    progress.update(
                         task_id,
                         completed=total * (i.rate / 100),
                         status=f'Testing {i.file}' if i.file is not None else 'Testing...',
                     )
                 case 'Open':
-                    p.update(
+                    progress.update(
                         task_id,
                         completed=total * (i.rate / 100),
                         status='Opening...',
                     )
                 case 'Scan':
-                    p.update(
+                    progress.update(
                         task_id,
                         completed=i.rate * 1048576,
                         status='Scanning...',
                     )
                 case 'Unknown':
-                    p.update(task_id, completed=total * (i.rate / 100))
-        p.update(task_id, completed=total, status='Completed', refresh=True)
+                    progress.update(task_id, completed=total * (i.rate / 100))
+        progress.update(task_id, completed=total, status='Completed', refresh=True)
 
     # 计算hash
     all_product = product_list + await calculate_hash(product_list)
