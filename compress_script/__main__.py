@@ -74,13 +74,18 @@ async def parsing_progress(process: Process) -> AsyncGenerator[str]:
 async def parsing_compress(process: Process) -> AsyncGenerator[CompressProgress]:
     async for line in parsing_progress(process):
         if (result := search(r'(\d+)% \d+ \+ (.*)\r', line)) is not None:
-            yield CompressProgress(rate=int(result.group(1)), file=result.group(2).strip().rsplit(maxsplit=1)[-1])
+            yield CompressProgress(
+                rate=int(result.group(1)),
+                file=result.group(2).strip().replace('\\', '/').rsplit(maxsplit=1)[-1].rsplit('/', maxsplit=1)[-1],
+            )
 
 
 async def parsing_test(process: Process) -> AsyncGenerator[TestProgress]:
     async for line in parsing_progress(process):
         if (result := search(r'(\d+)% T (.*)\r', line)) is not None:
-            yield TestProgress(rate=int(result.group(1)), status='Test', file=result.group(2))
+            yield TestProgress(
+                rate=int(result.group(1)), status='Test', file=result.group(2).strip().rsplit(maxsplit=1)[-1]
+            )
             continue
         if (result := search(r'(\d+)M Scan\r', line)) is not None:
             yield TestProgress(rate=int(result.group(1)), status='Scan', file=None)
@@ -155,7 +160,7 @@ async def calculate_hash(file_list: list[Path]) -> list[Path]:
                     progress.add_task(
                         description='hash',
                         status='Waiting...',
-                        filename=i.name,
+                        task_name=i.name,
                         total=i.stat().st_size,
                         start=False,
                     ),
@@ -203,7 +208,7 @@ async def _main(source_path: Path) -> None:
         task_id = progress.add_task(
             'compress',
             status='Compressing...',
-            filename=source_path.name,
+            task_name=source_path.name,
             total=(total := get_total_size(source_path)),
         )
         async for i in parsing_compress(process):
@@ -219,7 +224,7 @@ async def _main(source_path: Path) -> None:
         task_id = progress.add_task(
             'compress',
             status='Testing...',
-            filename=source_path.name,
+            task_name=source_path.name,
             total=(total := get_total_size(source_path)),
         )
         async for i in parsing_test(process):
@@ -243,7 +248,11 @@ async def _main(source_path: Path) -> None:
                         status='Scanning...',
                     )
                 case 'Unknown':
-                    progress.update(task_id, completed=total * (i.rate / 100))
+                    progress.update(
+                        task_id,
+                        completed=total * (i.rate / 100),
+                        status='Testing...',
+                    )
         progress.update(task_id, completed=total, status='Completed', refresh=True)
 
     # 计算hash

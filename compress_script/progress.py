@@ -14,8 +14,8 @@ from compress_script.logger import console
 
 def get_progress() -> Progress:
     return Progress(
+        TextColumn('[bold blue]{task.fields[task_name]}', justify='right'),
         TextColumn('[bold green]{task.fields[status]}'),
-        TextColumn('[bold blue]{task.fields[filename]}', justify='right'),
         BarColumn(bar_width=None),
         '[progress.percentage]{task.percentage:>3.1f}%',
         '•',
