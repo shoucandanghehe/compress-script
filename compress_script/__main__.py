@@ -191,8 +191,9 @@ async def archive_to_folder(file_list: list[Path], source_path: Path, archive_na
     for i in file_list:
         await move(i, archive_path)
         logger.debug(f'移动 {i} 到存储文件夹')
-    logger.info('移动存储文件夹到归档文件夹')
-    await move(archive_path, CONFIG.save_path)
+    if CONFIG.archive_enabled:
+        logger.info('移动存储文件夹到归档文件夹')
+        await move(archive_path, CONFIG.save_path)
 
 
 async def _main(source_path: Path) -> None:
@@ -316,8 +317,9 @@ async def main() -> None:
         else:
             logger.info('手动运行')
             await manual()
-        logger.info('打开归档文件夹')
-        startfile(CONFIG.save_path)  # noqa: S606
+        if CONFIG.archive_enabled:
+            logger.info('打开归档文件夹')
+            startfile(CONFIG.save_path)  # noqa: S606
     else:
         logger.success('没有输入参数, 正在退出')
 
