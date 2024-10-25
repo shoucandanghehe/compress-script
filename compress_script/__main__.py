@@ -309,14 +309,14 @@ async def manual() -> None:
         await _main(path)
 
 
-async def main() -> None:
+def main() -> None:
     if len(argv) > 1:
         if argv[1] == 'explorer':
             logger.info('右键菜单运行')
-            await explorer()
+            run(explorer())
         else:
             logger.info('手动运行')
-            await manual()
+            run(manual())
         if CONFIG.archive_enabled:
             logger.info('打开归档文件夹')
             startfile(CONFIG.save_path)  # noqa: S606
@@ -325,4 +325,4 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-    run(main())
+    main()
