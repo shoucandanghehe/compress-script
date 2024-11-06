@@ -1,0 +1,48 @@
+name: Release CI
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        name: Setup UV
+        with:
+          enable-cache: true
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: uv -p 3.12 sync --no-dev --only-group build
+        shell: bash
+
+      - name: Get Version
+        id: version
+        run: |
+          echo "VERSION=$(uvx pdm show --version)" >> $GITHUB_OUTPUT
+          echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Check Version
+        if: steps.version.outputs.VERSION != steps.version.outputs.TAG_VERSION
+        run: exit 1
+
+      - name: Build Package
+        run: uv run pyinstaller -F ./compress_script/__main__.py --icon icon.ico -n compress_script.exe
+
+      - name: Publish Package to GitHub Release
+        run: gh release create ${{ steps.version.outputs.TAG_NAME }} dist/compress_script.exe -t "🔖 ${{ steps.version.outputs.TAG_NAME }}" --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

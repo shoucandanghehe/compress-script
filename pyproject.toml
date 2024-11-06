@@ -11,20 +11,14 @@ dependencies = [
     "loguru>=0.7.2",
     "msgspec>=0.18.6",
     "pytimedinput>=2.0.1",
-    "rich>=13.8.0",
+    "rich>=13.9.4",
     "richuru>=0.1.1",
     "rtoml>=0.11.0",
     "tomli-w>=1.0.0",
 ]
 
 [tool.uv]
-dev-dependencies = [
-    "basedpyright>=1.17.3",
-    "mypy>=1.11.2",
-    "pyinstaller>=6.10.0",
-    "ruff>=0.6.4",
-    "types-aiofiles>=24.1.0.20240626",
-]
+default-groups = ["all"]
 
 [tool.ruff]
 line-length = 120
@@ -103,3 +97,13 @@ quote-style = 'single'
 pythonVersion = "3.12"
 pythonPlatform = "All"
 typeCheckingMode = "standard"
+
+[dependency-groups]
+dev = ["basedpyright>=1.21.0", "mypy>=1.13.0", "ruff>=0.7.2"]
+build = ["pyinstaller>=6.11.0"]
+typecheck = ["types-aiofiles>=24.1.0.20240626"]
+all = [
+    { include-group = "dev" },
+    { include-group = "build" },
+    { include-group = "typecheck" },
+]
