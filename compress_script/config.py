@@ -1,9 +1,12 @@
+import sys
 from pathlib import Path
 from shutil import rmtree
 from sys import argv
-from typing import Generic, Self, TypeVar, override
+from typing import Generic, NoReturn, Self, TypeVar, override
 
 from msgspec import Struct, ValidationError, toml
+
+from .logger import logger
 
 # ruff: noqa: RUF001
 
@@ -147,11 +150,14 @@ class Config:
                 return
         rmtree(self.path) if self.path.is_dir() else self.path.unlink(missing_ok=True)
         self.path.touch()
-        self.config = self.set_default()
+        self.set_default()
 
-    def set_default(self) -> LastConfig:
+    def set_default(self) -> NoReturn:
         self.path.write_bytes(toml.encode(config := LastConfig.default()))
-        return config
+        self.config = config
+        logger.success(f'已生成默认配置文件: {self.path}')
+        logger.warning('请修改配置文件后重新运行程序')
+        sys.exit(0)
 
     @property
     def password(self) -> str:
