@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: uv -p 3.12 sync --no-dev --only-group build
+      - run: uv sync -p 3.12 --no-dev --only-group build
         shell: bash
 
       - name: Get Version
